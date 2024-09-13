@@ -52,8 +52,8 @@ pub struct Config {
     pub args: Vec<String>,
     pub env: Vec<String>,
 
-    pub uid: nix::unistd::Uid,
-    pub gid: nix::unistd::Gid,
+    pub uid: Option<nix::unistd::Uid>,
+    pub gid: Option<nix::unistd::Gid>,
 }
 
 impl TryFrom<JsonDeConfig> for Config {
@@ -127,8 +127,14 @@ impl TryFrom<JsonDeConfig> for Config {
         let args = json_cfg.args.unwrap_or_default();
         let env = json_cfg.env.unwrap_or_default();
 
-        let uid = nix::unistd::Uid::from_raw(json_cfg.uid.unwrap_or(65534));
-        let gid = nix::unistd::Gid::from_raw(json_cfg.gid.unwrap_or(65534));
+        let uid = match json_cfg.uid {
+            Some(uid) => Some(nix::unistd::Uid::from_raw(uid)),
+            _ => None,
+        };
+        let gid = match json_cfg.gid {
+            Some(gid) => Some(nix::unistd::Gid::from_raw(gid)),
+            _ => None,
+        };
 
         Ok(Self {
             lang,
@@ -149,7 +155,7 @@ impl TryFrom<JsonDeConfig> for Config {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum JudgeState {
     SystemError,
     MemoryLimitExceeded,
@@ -158,11 +164,12 @@ pub enum JudgeState {
     RuntimeError,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct JudgeResult {
-    cpu_time: u64,
-    real_time: u64,
-    memory: u64,
-    state: JudgeState,
+    pub cpu_time: u64,
+    pub real_time: u64,
+    pub memory: u64,
+    pub state: JudgeState,
+    pub exit_code: i32,
     // core_state: JudgeCoreState,
 }
